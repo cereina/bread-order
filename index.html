@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bread Order App</title>
+  <!-- Link the web‑app manifest so the app can be installed as a PWA -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Bread Order App</h1>
+  </header>
+  <main>
+    <!-- Form to capture a single bread item and its quantity -->
+    <form id="orderForm">
+      <label for="itemNameSelect">Bread item:</label>
+      <!-- The select box will be populated with available bread items via app.js -->
+      <select id="itemNameSelect" name="itemNameSelect" required></select>
+      <label for="itemQty">Quantity:</label>
+      <input type="number" id="itemQty" name="itemQty" min="1" placeholder="1" required>
+      <button type="submit">Add Order</button>
+    </form>
+    <!-- Manage bread items: expand the details element to add or rename items -->
+    <details id="manageItems">
+      <summary>Manage Bread Items</summary>
+      <div class="manage-items-container">
+        <p>Click on an item to rename it. Use the button below to add a new item.</p>
+        <ul id="itemList"></ul>
+        <button type="button" id="addNewItem">Add New Item</button>
+      </div>
+    </details>
+    <!-- Section showing the current day's order list -->
+    <section id="orderList">
+      <h2>Today's Orders</h2>
+      <ul id="orderItems"></ul>
+    </section>
+    <!-- Buttons to send the summary via email and reset the list -->
+    <button id="sendSummary">Send Summary</button>
+    <button id="resetOrders">Reset Orders</button>
+  </main>
+  <!-- Load the application script. For multi-user support the app now
+       communicates with a back-end server to store orders and items. -->
+  <script src="app_server.js"></script>
+</body>
+</html>
