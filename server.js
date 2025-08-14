@@ -1,93 +1,76 @@
 
-// server.js with authentication system
 const express = require('express');
 const fs = require('fs');
-const cors = require('cors');
 const bcrypt = require('bcrypt');
+const path = require('path');
 const bodyParser = require('body-parser');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-const ORDERS_FILE = 'orders.json';
-const ITEMS_FILE = 'items.json';
-const USERS_FILE = 'users.json';
+let orders = [];
+let items = ['Pain Libanais', 'Manakish Zaatar', 'Pain complet'];
 
-// Load users from file
-function loadUsers() {
-  return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+function readUsers() {
+  try {
+    const data = fs.readFileSync('users.json', 'utf8');
+    return JSON.parse(data);
+  } catch (err) {
+    return [];
+  }
 }
 
 function saveUsers(users) {
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+  fs.writeFileSync('users.json', JSON.stringify(users, null, 2));
 }
 
-function findUser(username) {
-  const users = loadUsers();
-  return users.find(u => u.username === username);
-}
-
-// --- AUTHENTICATION ---
-app.post('/api/signup', async (req, res) => {
+app.post('/signup', async (req, res) => {
   const { username, password } = req.body;
-  if (!username || !password) return res.status(400).send('Missing credentials');
-  const users = loadUsers();
-  if (users.find(u => u.username === username)) {
-    return res.status(400).send('User already exists');
+  const users = readUsers();
+  if (users.find(user => user.username === username)) {
+    return res.json({ success: false, message: 'User already exists' });
   }
-  const hashed = await bcrypt.hash(password, 12);
-  users.push({ username, password: hashed, role: 'user' });
+  const hashedPassword = await bcrypt.hash(password, 10);
+  users.push({ username, password: hashedPassword, role: 'user' });
   saveUsers(users);
-  res.status(201).send('User created');
+  res.json({ success: true, message: 'User created' });
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  const user = findUser(username);
-  if (!user) return res.status(401).send('Invalid user');
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(401).send('Invalid password');
-  res.json({ username: user.username, role: user.role });
+  const users = readUsers();
+  const user = users.find(u => u.username === username);
+  if (!user) return res.json({ success: false, message: 'User not found' });
+  const valid = await bcrypt.compare(password, user.password);
+  if (valid) {
+    res.json({ success: true, role: user.role });
+  } else {
+    res.json({ success: false, message: 'Invalid credentials' });
+  }
 });
 
-// --- ORDER AND ITEM API ---
-app.get('/api/orders', (req, res) => {
-  const orders = fs.existsSync(ORDERS_FILE) ? JSON.parse(fs.readFileSync(ORDERS_FILE)) : [];
-  res.json(orders);
-});
+app.get('/items', (req, res) => res.json(items));
 
-app.post('/api/orders', (req, res) => {
-  const orders = fs.existsSync(ORDERS_FILE) ? JSON.parse(fs.readFileSync(ORDERS_FILE)) : [];
-  orders.push(req.body);
-  fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
-  res.status(201).send('Order saved');
-});
-
-app.get('/api/items', (req, res) => {
-  const items = fs.existsSync(ITEMS_FILE) ? JSON.parse(fs.readFileSync(ITEMS_FILE)) : [];
-  res.json(items);
-});
-
-app.post('/api/items', (req, res) => {
-  const { user, item } = req.body;
-  if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
-  const items = fs.existsSync(ITEMS_FILE) ? JSON.parse(fs.readFileSync(ITEMS_FILE)) : [];
+app.post('/add-item', (req, res) => {
+  const { item } = req.body;
   items.push(item);
-  fs.writeFileSync(ITEMS_FILE, JSON.stringify(items, null, 2));
-  res.status(201).send('Item added');
+  res.json({ success: true });
 });
 
-app.put('/api/items', (req, res) => {
-  const { user, items } = req.body;
-  if (!user || user.role !== 'admin') return res.status(403).send('Forbidden');
-  fs.writeFileSync(ITEMS_FILE, JSON.stringify(items, null, 2));
-  res.status(200).send('Items updated');
+app.delete('/delete-item/:index', (req, res) => {
+  const index = parseInt(req.params.index);
+  items.splice(index, 1);
+  res.json({ success: true });
 });
 
-app.listen(PORT, () => {
-  console.log(`Bread Order App server is running at http://localhost:${PORT}`);
+app.post('/add-order', (req, res) => {
+  const { item, quantity } = req.body;
+  orders.push({ item, quantity });
+  res.json({ success: true });
 });
+
+app.get('/orders', (req, res) => res.json(orders));
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
