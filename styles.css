@@ -1,0 +1,165 @@
+/*
+ * Basic styles for the bread order application.
+ *
+ * The layout is intentionally simple so that it works well on mobile devices
+ * without requiring additional frameworks. Feel free to adjust colours,
+ * fonts or spacing to better suit your needs.
+ */
+
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #f7f6f1;
+  color: #333;
+}
+
+header {
+  background: #d58a5c;
+  color: #fff;
+  padding: 1rem;
+  text-align: center;
+}
+
+main {
+  padding: 1rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+form label {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+form input {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+form button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background: #e6a67e;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+form button:hover {
+  background: #cf875d;
+}
+
+#orderList {
+  margin-top: 1rem;
+}
+
+#orderList h2 {
+  margin-bottom: 0.5rem;
+}
+
+#orderList ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#orderList li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  border-bottom: 1px solid #e0ddd6;
+}
+
+#sendSummary,
+#resetOrders {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+#sendSummary {
+  background: #81c784;
+  color: #fff;
+}
+
+#sendSummary:hover {
+  background: #66bb6a;
+}
+
+#resetOrders {
+  background: #e57373;
+  color: #fff;
+}
+
+#resetOrders:hover {
+  background: #d32f2f;
+}
+
+/* Styles for the manage items section */
+details {
+  margin-bottom: 1rem;
+  background: #f1ece4;
+  border: 1px solid #e0ddd6;
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+details summary {
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+
+.manage-items-container {
+  margin-top: 0.5rem;
+}
+
+.manage-items-container ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.manage-items-container li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #e0ddd6;
+}
+
+.manage-items-container li span {
+  flex: 1;
+}
+
+.manage-items-container button {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  background: #ffb74d;
+  color: #fff;
+}
+
+.manage-items-container button:hover {
+  background: #ffa726;
+}
