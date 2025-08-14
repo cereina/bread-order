@@ -1,47 +1,189 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bread Order App</title>
-  <!-- Link the web‑app manifest so the app can be installed as a PWA -->
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .hidden { display: none; }
+    #order-form, #admin-panel, #orders-list { margin-top: 20px; }
+  </style>
 </head>
 <body>
-  <header>
-    <h1>Bread Order App</h1>
-  </header>
-  <main>
-    <!-- Form to capture a single bread item and its quantity -->
-    <form id="orderForm">
-      <label for="itemNameSelect">Bread item:</label>
-      <!-- The select box will be populated with available bread items via app.js -->
-      <select id="itemNameSelect" name="itemNameSelect" required></select>
-      <label for="itemQty">Quantity:</label>
-      <input type="number" id="itemQty" name="itemQty" min="1" placeholder="1" required>
-      <button type="submit">Add Order</button>
-    </form>
-    <!-- Manage bread items: expand the details element to add or rename items -->
-    <details id="manageItems">
-      <summary>Manage Bread Items</summary>
-      <div class="manage-items-container">
-        <p>Click on an item to rename it. Use the button below to add a new item.</p>
-        <ul id="itemList"></ul>
-        <button type="button" id="addNewItem">Add New Item</button>
-      </div>
-    </details>
-    <!-- Section showing the current day's order list -->
-    <section id="orderList">
+
+  <h1>Bread Order System</h1>
+
+  <div id="auth-section">
+    <h2>Login</h2>
+    <input type="text" id="login-username" placeholder="Username" />
+    <input type="password" id="login-password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+
+    <h2>Sign Up</h2>
+    <input type="text" id="signup-username" placeholder="Username" />
+    <input type="password" id="signup-password" placeholder="Password" />
+    <button onclick="signup()">Sign Up</button>
+  </div>
+
+  <div id="main-app" class="hidden">
+    <p>Welcome, <span id="user-info"></span> <button onclick="logout()">Logout</button></p>
+
+    <div id="order-form">
+      <h2>Place Order</h2>
+      <select id="bread-item"></select>
+      <input type="number" id="quantity" placeholder="Quantity" />
+      <button onclick="placeOrder()">Add Order</button>
+    </div>
+
+    <div id="orders-list">
       <h2>Today's Orders</h2>
-      <ul id="orderItems"></ul>
-    </section>
-    <!-- Buttons to send the summary via email and reset the list -->
-    <button id="sendSummary">Send Summary</button>
-    <button id="resetOrders">Reset Orders</button>
-  </main>
-  <!-- Load the application script. For multi-user support the app now
-       communicates with a back-end server to store orders and items. -->
-  <script src="app_server.js"></script>
+      <ul id="order-output"></ul>
+    </div>
+
+    <div id="admin-panel" class="hidden">
+      <h2>Admin: Manage Bread Items</h2>
+      <input type="text" id="new-item" placeholder="New item name" />
+      <button onclick="addItem()">Add Item</button>
+      <ul id="item-list"></ul>
+    </div>
+  </div>
+
+  <script>
+    let userRole = null;
+    let username = null;
+
+    function displayApp() {
+      document.getElementById("auth-section").classList.add("hidden");
+      document.getElementById("main-app").classList.remove("hidden");
+      document.getElementById("user-info").innerText = username;
+
+      if (userRole === "admin") {
+        document.getElementById("admin-panel").classList.remove("hidden");
+      } else {
+        document.getElementById("admin-panel").classList.add("hidden");
+      }
+
+      fetchItems();
+      fetchOrders();
+    }
+
+    function login() {
+      const usernameVal = document.getElementById("login-username").value;
+      const passwordVal = document.getElementById("login-password").value;
+
+      fetch("/login", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username: usernameVal, password: passwordVal })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          userRole = data.role;
+          username = usernameVal;
+          displayApp();
+        } else {
+          alert(data.message);
+        }
+      });
+    }
+
+    function signup() {
+      const usernameVal = document.getElementById("signup-username").value;
+      const passwordVal = document.getElementById("signup-password").value;
+
+      fetch("/signup", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username: usernameVal, password: passwordVal })
+      })
+      .then(res => res.json())
+      .then(data => alert(data.message));
+    }
+
+    function logout() {
+      location.reload();
+    }
+
+    function fetchItems() {
+      fetch("/items")
+        .then(res => res.json())
+        .then(items => {
+          const select = document.getElementById("bread-item");
+          select.innerHTML = "";
+          items.forEach(item => {
+            const option = document.createElement("option");
+            option.value = item;
+            option.textContent = item;
+            select.appendChild(option);
+          });
+
+          if (userRole === "admin") {
+            const itemList = document.getElementById("item-list");
+            itemList.innerHTML = "";
+            items.forEach((item, index) => {
+              const li = document.createElement("li");
+              li.textContent = item + " ";
+              const delBtn = document.createElement("button");
+              delBtn.textContent = "Delete";
+              delBtn.onclick = () => deleteItem(index);
+              li.appendChild(delBtn);
+              itemList.appendChild(li);
+            });
+          }
+        });
+    }
+
+    function addItem() {
+      const item = document.getElementById("new-item").value;
+      fetch("/add-item", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ item })
+      })
+      .then(res => res.json())
+      .then(() => {
+        fetchItems();
+        document.getElementById("new-item").value = "";
+      });
+    }
+
+    function deleteItem(index) {
+      fetch(`/delete-item/${index}`, { method: "DELETE" })
+        .then(res => res.json())
+        .then(() => fetchItems());
+    }
+
+    function placeOrder() {
+      const item = document.getElementById("bread-item").value;
+      const quantity = document.getElementById("quantity").value;
+      fetch("/add-order", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ item, quantity })
+      })
+      .then(res => res.json())
+      .then(() => {
+        fetchOrders();
+        document.getElementById("quantity").value = "";
+      });
+    }
+
+    function fetchOrders() {
+      fetch("/orders")
+        .then(res => res.json())
+        .then(orders => {
+          const output = document.getElementById("order-output");
+          output.innerHTML = "";
+          orders.forEach(order => {
+            const li = document.createElement("li");
+            li.textContent = `${order.quantity} x ${order.item}`;
+            output.appendChild(li);
+          });
+        });
+    }
+  </script>
+
 </body>
 </html>
