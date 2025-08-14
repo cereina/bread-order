@@ -5,8 +5,8 @@
       "password": {
         "algo": "pbkdf2_sha256",
         "iter": 200000,
-        "salt": "3bb4e7cbb43eec3cb1c55cdde60a3bb7",
-        "hash": "cbb6762dd65d45b49d06d9e85b42a1f85e2a23d4db03d7982498f3e42e270c83"
+        "salt": "29c12006fd6c30d8cb93808863f3562d",
+        "hash": "2f473be7278953224aa7f0c344d53574de6bfe799ee2beb86db63bfe2da4d200"
       },
       "role": "admin"
     }
