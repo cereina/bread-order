@@ -2,13 +2,13 @@
   "users": [
     {
       "username": "admin",
-      "role": "admin",
       "password": {
         "algo": "pbkdf2_sha256",
         "iter": 200000,
-        "salt": "37827210edffe0e317aaca434417e504",
-        "hash": "4e3fcde589eef660c375a3bb8cf93db6ed45a6765954a678b28a775f29b70b72"
-      }
+        "salt": "3bb4e7cbb43eec3cb1c55cdde60a3bb7",
+        "hash": "cbb6762dd65d45b49d06d9e85b42a1f85e2a23d4db03d7982498f3e42e270c83"
+      },
+      "role": "admin"
     }
   ]
 }
