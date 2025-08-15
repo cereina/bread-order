@@ -1,224 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Bread Order App</title>
-<link rel="stylesheet" href="styles.css">
-<style>
-body { font-family: Arial, sans-serif; margin: 20px; }
-header { display: flex; justify-content: space-between; align-items: center; }
-#orders, #items { margin-top: 20px; }
-table { border-collapse: collapse; width: 100%; }
-table, th, td { border: 1px solid #ccc; }
-th, td { padding: 8px; text-align: left; }
-button { margin: 2px; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>User Management — Bread App</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#f6f7fb; }
+    .container { max-width: 960px; margin: 2rem auto; background:#fff; padding:1.25rem 1.5rem; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,.06); }
+    .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;}
+    .btn { padding:.45rem .8rem; border:none; border-radius:8px; cursor:pointer; }
+    .btn.primary { background:#1976d2; color:#fff;}
+    .btn.warn { background:#c62828; color:#fff;}
+    .btn.muted { background:#e0e0e0;}
+    .inline { display:flex; gap:.5rem; flex-wrap: wrap; }
+    input, select { padding:.5rem; border:1px solid #ddd; border-radius:8px; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding:.6rem .5rem; border-bottom:1px solid #eee; text-align:left; }
+    .error { color:#c62828; margin-top:.5rem; min-height:1.2em; }
+    .note { color:#666; font-size:.9rem; }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <div class="topbar">
+      <h1>Users</h1>
+      <div class="inline">
+        <a class="btn muted" href="/">Home</a>
+        <button class="btn" id="logoutBtn">Logout</button>
+      </div>
+    </div>
 
-<header>
-  <h1>Bread Order App</h1>
-  <div>
-    Logged in as: <span id="username"></span> (<span id="role"></span>)
-    <button id="logoutBtn">Logout</button>
+    <div id="status" class="note"></div>
+
+    <h3>Add user</h3>
+    <div class="inline" style="margin-bottom:1rem;">
+      <input id="newUsername" placeholder="username" autocomplete="off"/>
+      <input id="newPassword" placeholder="password" type="password" autocomplete="new-password"/>
+      <select id="newRole">
+        <option value="user">user</option>
+        <option value="admin">admin</option>
+      </select>
+      <button class="btn primary" id="addBtn">Add</button>
+    </div>
+    <div class="error" id="addErr"></div>
+
+    <table>
+      <thead><tr><th>Username</th><th>Role</th><th>Actions</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+
+    <div class="error" id="err"></div>
   </div>
-</header>
 
-<section id="orderSection">
-  <h2>Place an Order</h2>
-  <select id="itemSelect"></select>
-  <input type="number" id="qtyInput" placeholder="Quantity" min="1" value="1">
-  <button id="addOrderBtn">Add Order</button>
-</section>
-
-<section id="orders">
-  <h2>Orders</h2>
-  <table>
-    <thead><tr><th>Item</th><th>Quantity</th><th>Actions</th></tr></thead>
-    <tbody id="ordersBody"></tbody>
-  </table>
-</section>
-
-<section id="items" style="display:none;">
-  <h2>Manage Items (Admin)</h2>
-  <input type="text" id="newItemName" placeholder="New item name">
-  <button id="addItemBtn">Add Item</button>
-  <ul id="itemsList"></ul>
-</section>
-
-<section id="users" style="display:none;">
-  <h2>Manage Users (Admin)</h2>
-  <input type="text" id="newUsername" placeholder="Username">
-  <input type="password" id="newPassword" placeholder="Password">
-  <select id="newRole">
-    <option value="user">User</option>
-    <option value="admin">Admin</option>
-  </select>
-  <button id="addUserBtn">Add User</button>
-  <table>
-    <thead><tr><th>Username</th><th>Role</th><th>Actions</th></tr></thead>
-    <tbody id="usersBody"></tbody>
-  </table>
-</section>
-
-<script>
-async function fetchJSON(url, opts) {
-  const res = await fetch(url, opts);
-  if (!res.ok) throw new Error((await res.json()).error || res.statusText);
-  return res.json();
-}
-
-async function init() {
-  try {
-    const me = await fetchJSON('/api/me');
-    if (!me.user) return location.href = '/login.html';
-    document.getElementById('username').textContent = me.user.username;
-    document.getElementById('role').textContent = me.user.role;
-    if (me.user.role === 'admin') {
-      document.getElementById('items').style.display = '';
-      document.getElementById('users').style.display = '';
-      loadItemsAdmin();
-      loadUsers();
+  <script>
+    function showError(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg || '';
     }
-    loadItems();
-    loadOrders();
-  } catch {
-    location.href = '/login.html';
-  }
-}
+    async function fetchJSON(url, opts) {
+      const res = await fetch(url, opts);
+      const ct = res.headers.get('content-type') || '';
+      // If we got redirected to HTML (login page), surface a helpful message:
+      if (!ct.includes('application/json')) {
+        const text = await res.text();
+        throw new Error('Expected JSON but received HTML. Are you logged in as admin?');
+      }
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = (data && data.error) ? data.error : res.statusText;
+        throw new Error(msg);
+      }
+      return data;
+    }
 
-document.getElementById('logoutBtn').onclick = async () => {
-  await fetch('/api/logout', { method: 'POST' });
-  location.href = '/login.html';
-};
+    async function ensureAdmin() {
+      try {
+        const me = await fetchJSON('/api/me');
+        if (!me.user) { location.href = '/login.html'; return false; }
+        if (me.user.role !== 'admin') { location.href = '/'; return false; }
+        document.getElementById('status').textContent = `Signed in as ${me.user.username} (${me.user.role})`;
+        return true;
+      } catch (e) {
+        showError('err', e.message);
+        location.href = '/login.html';
+        return false;
+      }
+    }
 
-async function loadItems() {
-  const items = await fetchJSON('/api/items');
-  const sel = document.getElementById('itemSelect');
-  sel.innerHTML = '';
-  items.forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    sel.appendChild(opt);
-  });
-}
+    async function loadUsers() {
+      try {
+        showError('err', '');
+        const list = await fetchJSON('/api/users');
+        const tbody = document.getElementById('tbody');
+        tbody.innerHTML = '';
+        for (const u of list) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${u.username}</td>
+            <td>
+              <select data-username="${u.username}" class="roleSel">
+                <option ${u.role==='user'?'selected':''} value="user">user</option>
+                <option ${u.role==='admin'?'selected':''} value="admin">admin</option>
+              </select>
+            </td>
+            <td>
+              <button class="btn" data-username="${u.username}" data-action="resetPw">Reset PW</button>
+              <button class="btn warn" data-username="${u.username}" data-action="delete">Delete</button>
+            </td>`;
+          tbody.appendChild(tr);
+        }
+      } catch (e) {
+        showError('err', 'Failed to load users: ' + e.message);
+      }
+    }
 
-async function loadOrders() {
-  const orders = await fetchJSON('/api/orders');
-  const tbody = document.getElementById('ordersBody');
-  tbody.innerHTML = '';
-  orders.forEach((o, idx) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${o.item}</td><td>${o.qty}</td>
-      <td>
-        <button onclick="deleteOrder(${idx})">Delete</button>
-      </td>`;
-    tbody.appendChild(tr);
-  });
-}
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      if (btn.id === 'addBtn') {
+        showError('addErr', '');
+        const username = document.getElementById('newUsername').value.trim();
+        const password = document.getElementById('newPassword').value;
+        const role = document.getElementById('newRole').value;
+        if (!username || !password) { showError('addErr', 'Username and password are required'); return; }
+        try {
+          await fetchJSON('/api/users', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ username, password, role })
+          });
+          document.getElementById('newUsername').value = '';
+          document.getElementById('newPassword').value = '';
+          await loadUsers();
+        } catch (e) {
+          showError('addErr', e.message);
+        }
+      }
+      if (btn.dataset.action === 'delete') {
+        const username = btn.dataset.username;
+        if (confirm('Delete user ' + username + '?')) {
+          try {
+            await fetchJSON('/api/users/' + encodeURIComponent(username), { method:'DELETE' });
+            await loadUsers();
+          } catch (e) {
+            showError('err', e.message);
+          }
+        }
+      }
+      if (btn.dataset.action === 'resetPw') {
+        const username = btn.dataset.username;
+        const pw = prompt('New password for ' + username + ':');
+        if (pw) {
+          try {
+            await fetchJSON('/api/users/' + encodeURIComponent(username), {
+              method:'PUT',
+              headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ password: pw })
+            });
+            alert('Password updated');
+          } catch (e) {
+            showError('err', e.message);
+          }
+        }
+      }
+    });
 
-async function deleteOrder(idx) {
-  await fetch(`/api/orders/${idx}`, { method: 'DELETE' });
-  loadOrders();
-}
+    document.addEventListener('change', async (e) => {
+      if (e.target.classList.contains('roleSel')) {
+        const username = e.target.dataset.username;
+        const role = e.target.value;
+        try {
+          await fetchJSON('/api/users/' + encodeURIComponent(username), {
+            method:'PUT',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ role })
+          });
+        } catch (e) {
+          showError('err', e.message);
+          // revert UI if update fails
+          e.target.value = e.target.value === 'admin' ? 'user' : 'admin';
+        }
+      }
+    });
 
-document.getElementById('addOrderBtn').onclick = async () => {
-  const item = document.getElementById('itemSelect').value;
-  const qty = parseInt(document.getElementById('qtyInput').value, 10);
-  await fetchJSON('/api/orders', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ item, qty })
-  });
-  loadOrders();
-};
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      try { await fetch('/api/logout', { method:'POST' }); } catch {}
+      location.href = '/login.html';
+    });
 
-// ===== Admin: Items =====
-async function loadItemsAdmin() {
-  const items = await fetchJSON('/api/items');
-  const list = document.getElementById('itemsList');
-  list.innerHTML = '';
-  items.forEach((name, idx) => {
-    const li = document.createElement('li');
-    li.innerHTML = `${name}
-      <button onclick="editItem(${idx}, '${name}')">Edit</button>
-      <button onclick="deleteItem(${idx})">Delete</button>`;
-    list.appendChild(li);
-  });
-}
-document.getElementById('addItemBtn').onclick = async () => {
-  const name = document.getElementById('newItemName').value;
-  await fetchJSON('/api/items', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name })
-  });
-  document.getElementById('newItemName').value = '';
-  loadItems();
-  loadItemsAdmin();
-};
-async function editItem(idx, oldName) {
-  const newName = prompt('New name:', oldName);
-  if (!newName) return;
-  await fetchJSON(`/api/items/${idx}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: newName })
-  });
-  loadItems();
-  loadItemsAdmin();
-}
-async function deleteItem(idx) {
-  // Not implemented in server.js, could be added
-  alert('Delete item not implemented');
-}
-
-// ===== Admin: Users =====
-async function loadUsers() {
-  const users = await fetchJSON('/api/users');
-  const tbody = document.getElementById('usersBody');
-  tbody.innerHTML = '';
-  users.forEach(u => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${u.username}</td><td>${u.role}</td>
-      <td>
-        <button onclick="editUser('${u.username}', '${u.role}')">Edit</button>
-        <button onclick="deleteUser('${u.username}')">Delete</button>
-      </td>`;
-    tbody.appendChild(tr);
-  });
-}
-document.getElementById('addUserBtn').onclick = async () => {
-  const username = document.getElementById('newUsername').value;
-  const password = document.getElementById('newPassword').value;
-  const role = document.getElementById('newRole').value;
-  await fetchJSON('/api/users', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, role })
-  });
-  document.getElementById('newUsername').value = '';
-  document.getElementById('newPassword').value = '';
-  loadUsers();
-};
-async function editUser(username, role) {
-  const newPassword = prompt('Enter new password (leave blank to keep same):');
-  const newRole = prompt('Enter new role (user/admin):', role);
-  await fetchJSON(`/api/users/${encodeURIComponent(username)}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: newPassword || undefined, role: newRole || undefined })
-  });
-  loadUsers();
-}
-async function deleteUser(username) {
-  await fetchJSON(`/api/users/${encodeURIComponent(username)}`, { method: 'DELETE' });
-  loadUsers();
-}
-
-init();
-</script>
-
+    (async () => { if (await ensureAdmin()) await loadUsers(); })();
+  </script>
 </body>
 </html>
