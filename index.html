@@ -1,224 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Bread Order App</title>
-<link rel="stylesheet" href="styles.css">
-<style>
-body { font-family: Arial, sans-serif; margin: 20px; }
-header { display: flex; justify-content: space-between; align-items: center; }
-#orders, #items { margin-top: 20px; }
-table { border-collapse: collapse; width: 100%; }
-table, th, td { border: 1px solid #ccc; }
-th, td { padding: 8px; text-align: left; }
-button { margin: 2px; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bread Order App</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .hidden { display: none; }
+    #order-form, #admin-panel, #orders-list { margin-top: 20px; }
+    button { margin-top: 5px; }
+  </style>
 </head>
 <body>
 
-<header>
-  <h1>Bread Order App</h1>
-  <div>
-    Logged in as: <span id="username"></span> (<span id="role"></span>)
-    <button id="logoutBtn">Logout</button>
+  <h1>Bread Order System</h1>
+
+  <div id="auth-section">
+    <h2>Login</h2>
+    <input type="text" id="login-username" placeholder="Username" />
+    <input type="password" id="login-password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+
+    <h2>Sign Up</h2>
+    <input type="text" id="signup-username" placeholder="Username" />
+    <input type="password" id="signup-password" placeholder="Password" />
+    <button onclick="signup()">Sign Up</button>
   </div>
-</header>
 
-<section id="orderSection">
-  <h2>Place an Order</h2>
-  <select id="itemSelect"></select>
-  <input type="number" id="qtyInput" placeholder="Quantity" min="1" value="1">
-  <button id="addOrderBtn">Add Order</button>
-</section>
+  <div id="main-app" class="hidden">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <p>Welcome, <span id="user-info"></span></p>
+      <button onclick="logout()" style="background-color: #f44336; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+        Logout
+      </button>
+    </div>
 
-<section id="orders">
-  <h2>Orders</h2>
-  <table>
-    <thead><tr><th>Item</th><th>Quantity</th><th>Actions</th></tr></thead>
-    <tbody id="ordersBody"></tbody>
-  </table>
-</section>
+    <div id="order-form">
+      <h2>Place Order</h2>
+      <select id="bread-item"></select>
+      <input type="number" id="quantity" placeholder="Quantity" />
+      <button onclick="placeOrder()">Add Order</button>
+    </div>
 
-<section id="items" style="display:none;">
-  <h2>Manage Items (Admin)</h2>
-  <input type="text" id="newItemName" placeholder="New item name">
-  <button id="addItemBtn">Add Item</button>
-  <ul id="itemsList"></ul>
-</section>
+    <div id="orders-list">
+      <h2>Today's Orders</h2>
+      <ul id="order-output"></ul>
+    </div>
 
-<section id="users" style="display:none;">
-  <h2>Manage Users (Admin)</h2>
-  <input type="text" id="newUsername" placeholder="Username">
-  <input type="password" id="newPassword" placeholder="Password">
-  <select id="newRole">
-    <option value="user">User</option>
-    <option value="admin">Admin</option>
-  </select>
-  <button id="addUserBtn">Add User</button>
-  <table>
-    <thead><tr><th>Username</th><th>Role</th><th>Actions</th></tr></thead>
-    <tbody id="usersBody"></tbody>
-  </table>
-</section>
+    <div id="admin-panel" class="hidden">
+      <h2>Admin: Manage Bread Items</h2>
+      <input type="text" id="new-item" placeholder="New item name" />
+      <button onclick="addItem()">Add Item</button>
+      <ul id="item-list"></ul>
+    </div>
+  </div>
 
-<script>
-async function fetchJSON(url, opts) {
-  const res = await fetch(url, opts);
-  if (!res.ok) throw new Error((await res.json()).error || res.statusText);
-  return res.json();
-}
+  <script>
+    let userRole = null;
+    let username = null;
 
-async function init() {
-  try {
-    const me = await fetchJSON('/api/me');
-    if (!me.user) return location.href = '/login.html';
-    document.getElementById('username').textContent = me.user.username;
-    document.getElementById('role').textContent = me.user.role;
-    if (me.user.role === 'admin') {
-      document.getElementById('items').style.display = '';
-      document.getElementById('users').style.display = '';
-      loadItemsAdmin();
-      loadUsers();
+    function displayApp() {
+      document.getElementById("auth-section").classList.add("hidden");
+      document.getElementById("main-app").classList.remove("hidden");
+      document.getElementById("user-info").innerText = username;
+
+      if (userRole === "admin") {
+        document.getElementById("admin-panel").classList.remove("hidden");
+      } else {
+        document.getElementById("admin-panel").classList.add("hidden");
+      }
+
+      fetchItems();
+      fetchOrders();
     }
-    loadItems();
-    loadOrders();
-  } catch {
-    location.href = '/login.html';
-  }
-}
 
-document.getElementById('logoutBtn').onclick = async () => {
-  await fetch('/api/logout', { method: 'POST' });
-  location.href = '/login.html';
-};
+    function login() {
+      const usernameVal = document.getElementById("login-username").value;
+      const passwordVal = document.getElementById("login-password").value;
 
-async function loadItems() {
-  const items = await fetchJSON('/api/items');
-  const sel = document.getElementById('itemSelect');
-  sel.innerHTML = '';
-  items.forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    sel.appendChild(opt);
-  });
-}
+      fetch("/login", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username: usernameVal, password: passwordVal })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          userRole = data.role;
+          username = usernameVal;
+          displayApp();
+        } else {
+          alert(data.message);
+        }
+      });
+    }
 
-async function loadOrders() {
-  const orders = await fetchJSON('/api/orders');
-  const tbody = document.getElementById('ordersBody');
-  tbody.innerHTML = '';
-  orders.forEach((o, idx) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${o.item}</td><td>${o.qty}</td>
-      <td>
-        <button onclick="deleteOrder(${idx})">Delete</button>
-      </td>`;
-    tbody.appendChild(tr);
-  });
-}
+    function signup() {
+      const usernameVal = document.getElementById("signup-username").value;
+      const passwordVal = document.getElementById("signup-password").value;
 
-async function deleteOrder(idx) {
-  await fetch(`/api/orders/${idx}`, { method: 'DELETE' });
-  loadOrders();
-}
+      fetch("/signup", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username: usernameVal, password: passwordVal })
+      })
+      .then(res => res.json())
+      .then(data => alert(data.message));
+    }
 
-document.getElementById('addOrderBtn').onclick = async () => {
-  const item = document.getElementById('itemSelect').value;
-  const qty = parseInt(document.getElementById('qtyInput').value, 10);
-  await fetchJSON('/api/orders', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ item, qty })
-  });
-  loadOrders();
-};
+    function logout() {
+      location.reload(); // Reset session (client-side)
+    }
 
-// ===== Admin: Items =====
-async function loadItemsAdmin() {
-  const items = await fetchJSON('/api/items');
-  const list = document.getElementById('itemsList');
-  list.innerHTML = '';
-  items.forEach((name, idx) => {
-    const li = document.createElement('li');
-    li.innerHTML = `${name}
-      <button onclick="editItem(${idx}, '${name}')">Edit</button>
-      <button onclick="deleteItem(${idx})">Delete</button>`;
-    list.appendChild(li);
-  });
-}
-document.getElementById('addItemBtn').onclick = async () => {
-  const name = document.getElementById('newItemName').value;
-  await fetchJSON('/api/items', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name })
-  });
-  document.getElementById('newItemName').value = '';
-  loadItems();
-  loadItemsAdmin();
-};
-async function editItem(idx, oldName) {
-  const newName = prompt('New name:', oldName);
-  if (!newName) return;
-  await fetchJSON(`/api/items/${idx}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: newName })
-  });
-  loadItems();
-  loadItemsAdmin();
-}
-async function deleteItem(idx) {
-  // Not implemented in server.js, could be added
-  alert('Delete item not implemented');
-}
+    function fetchItems() {
+      fetch("/items")
+        .then(res => res.json())
+        .then(items => {
+          const select = document.getElementById("bread-item");
+          select.innerHTML = "";
+          items.forEach(item => {
+            const option = document.createElement("option");
+            option.value = item;
+            option.textContent = item;
+            select.appendChild(option);
+          });
 
-// ===== Admin: Users =====
-async function loadUsers() {
-  const users = await fetchJSON('/api/users');
-  const tbody = document.getElementById('usersBody');
-  tbody.innerHTML = '';
-  users.forEach(u => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${u.username}</td><td>${u.role}</td>
-      <td>
-        <button onclick="editUser('${u.username}', '${u.role}')">Edit</button>
-        <button onclick="deleteUser('${u.username}')">Delete</button>
-      </td>`;
-    tbody.appendChild(tr);
-  });
-}
-document.getElementById('addUserBtn').onclick = async () => {
-  const username = document.getElementById('newUsername').value;
-  const password = document.getElementById('newPassword').value;
-  const role = document.getElementById('newRole').value;
-  await fetchJSON('/api/users', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, role })
-  });
-  document.getElementById('newUsername').value = '';
-  document.getElementById('newPassword').value = '';
-  loadUsers();
-};
-async function editUser(username, role) {
-  const newPassword = prompt('Enter new password (leave blank to keep same):');
-  const newRole = prompt('Enter new role (user/admin):', role);
-  await fetchJSON(`/api/users/${encodeURIComponent(username)}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: newPassword || undefined, role: newRole || undefined })
-  });
-  loadUsers();
-}
-async function deleteUser(username) {
-  await fetchJSON(`/api/users/${encodeURIComponent(username)}`, { method: 'DELETE' });
-  loadUsers();
-}
+          if (userRole === "admin") {
+            const itemList = document.getElementById("item-list");
+            itemList.innerHTML = "";
+            items.forEach((item, index) => {
+              const li = document.createElement("li");
+              li.textContent = item + " ";
+              const delBtn = document.createElement("button");
+              delBtn.textContent = "Delete";
+              delBtn.onclick = () => deleteItem(index);
+              li.appendChild(delBtn);
+              itemList.appendChild(li);
+            });
+          }
+        });
+    }
 
-init();
-</script>
+    function addItem() {
+      const item = document.getElementById("new-item").value;
+      fetch("/add-item", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ item })
+      })
+      .then(res => res.json())
+      .then(() => {
+        fetchItems();
+        document.getElementById("new-item").value = "";
+      });
+    }
+
+    function deleteItem(index) {
+      fetch(`/delete-item/${index}`, { method: "DELETE" })
+        .then(res => res.json())
+        .then(() => fetchItems());
+    }
+
+    function placeOrder() {
+      const item = document.getElementById("bread-item").value;
+      const quantity = document.getElementById("quantity").value;
+      fetch("/add-order", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ item, quantity })
+      })
+      .then(res => res.json())
+      .then(() => {
+        fetchOrders();
+        document.getElementById("quantity").value = "";
+      });
+    }
+
+    function fetchOrders() {
+      fetch("/orders")
+        .then(res => res.json())
+        .then(orders => {
+          const output = document.getElementById("order-output");
+          output.innerHTML = "";
+          orders.forEach(order => {
+            const li = document.createElement("li");
+            li.textContent = `${order.quantity} x ${order.item}`;
+            output.appendChild(li);
+          });
+        });
+    }
+  </script>
 
 </body>
 </html>
