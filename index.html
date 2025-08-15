@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,6 +10,22 @@
     .hidden { display: none; }
     #order-form, #admin-panel, #orders-list { margin-top: 20px; }
     button { margin-top: 5px; }
+    #top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-bottom: 1px solid #ccc;
+    }
+    #logout-btn {
+      background-color: #f44336;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -28,11 +45,9 @@
   </div>
 
   <div id="main-app" class="hidden">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div id="top-bar">
       <p>Welcome, <span id="user-info"></span></p>
-      <button onclick="logout()" style="background-color: #f44336; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
-        Logout
-      </button>
+      <button id="logout-btn" onclick="logout()">Logout</button>
     </div>
 
     <div id="order-form">
@@ -109,7 +124,7 @@
     }
 
     function logout() {
-      location.reload(); // Reset session (client-side)
+      location.reload();
     }
 
     function fetchItems() {
