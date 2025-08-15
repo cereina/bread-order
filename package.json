@@ -1,0 +1,14 @@
+{
+  "name": "bread-order-sqlite",
+  "version": "1.0.0",
+  "description": "Bread order app with SQLite and secure login",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.0",
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6"
+  }
+}
