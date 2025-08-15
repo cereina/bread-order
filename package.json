@@ -1,0 +1,12 @@
+{
+  "name": "bread-order-app",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
